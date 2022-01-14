@@ -32,7 +32,7 @@ pipeline {
         stage('Running playbook') {
             steps {
                 sh 'cd ansible-ws'
-                sh 'sudo ansible-playbook ./ansible-ws/site.yml -i ./ansible-ws'
+                sh 'sudo ansible-playbook ./ansible-ws/site.yml'
                 echo 'The configuration of ubuntu is done'        
             }
         }
