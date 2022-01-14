@@ -6,8 +6,9 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'll'
+                sh 'ls'
                 sh 'pwd'
+                sh  'whoami'
                 
             }
         }
