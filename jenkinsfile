@@ -8,6 +8,7 @@ pipeline {
         stage('Tf init and validate') {
             steps {
                 sh 'cd Terraform/multicloudk8s/'
+                sh 'ls'
                 sh 'terraform init'
                 sh 'terraform validate'
                 echo 'the validation of terraform is done'                
@@ -16,6 +17,7 @@ pipeline {
 
         stage('Tf apply') {
             steps {
+                sh 'cd Terraform/multicloudk8s/'
                 sh 'pwd'
                 sh 'terraform apply -auto-approve'
                 sh 'terraform validate'
@@ -25,7 +27,7 @@ pipeline {
 
         stage('Preparing CM') {
             steps {
-                sh 'cd ../../ansible-ws'
+                sh 'cd ansible-ws'
                 sh 'pwd'
                 sh 'ls'
                 sh 'cat inventory'
@@ -37,6 +39,7 @@ pipeline {
 
         stage('Running playbook') {
             steps {
+                sh 'cd ansible-ws'
                 sh 'ansible-inventory --graph'
                 sh 'ansible-playbook site.yml'
                 echo 'The configuration of ubuntu is done'        
@@ -46,7 +49,7 @@ pipeline {
         stage('destroying Terraform') {
             steps {
                 sh 'pwd'
-                sh 'cd ../Terraform/multicloudk8s/'
+                sh 'cd Terraform/multicloudk8s/'
                 sh 'ansible-playbook site.yml'
                 echo 'The configuration of ubuntu has gone'        
             }
