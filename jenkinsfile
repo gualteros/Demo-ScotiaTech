@@ -3,13 +3,52 @@ pipeline {
         label "daniel"
     }
     
+    
     stages {
-        stage('Build') {
+        stage('Tf init and validate') {
             steps {
-                sh 'ls'
+                sh 'cd Terraform/multicloudk8s/'
+                sh 'terraform init'
+                sh 'terraform validate'
+                echo 'the validation of terraform is done'                
+            }
+        }
+
+        stage('Tf apply') {
+            steps {
                 sh 'pwd'
-                sh  'whoami'
-                
+                sh 'terraform apply -auto-approve'
+                sh 'terraform validate'
+                echo 'the validation of terraform is done'                
+            }
+        }
+
+        stage('Preparing CM') {
+            steps {
+                sh 'cd ../../ansible-ws'
+                sh 'pwd'
+                sh 'ls'
+                sh 'cat inventory'
+                echo 'run the follow command to connect server by terraform "ssh -i k8s-multi-cloud-key-public ubuntu@<ip-address>"'
+                sh 'terraform validate'
+                echo 'the validation of terraform is done'                
+            }
+        }
+
+        stage('Running playbook') {
+            steps {
+                sh 'ansible-inventory --graph'
+                sh 'ansible-playbook site.yml'
+                echo 'The configuration of ubuntu is done'        
+            }
+        }
+
+        stage('destroying Terraform') {
+            steps {
+                sh 'pwd'
+                sh 'cd ../Terraform/multicloudk8s/'
+                sh 'ansible-playbook site.yml'
+                echo 'The configuration of ubuntu has gone'        
             }
         }
     }
