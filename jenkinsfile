@@ -43,6 +43,38 @@ pipeline {
                 echo 'The configuration of ubuntu has gone'        
             }
         }
+
+        stage('build/maven') {
+            steps {
+                sh 'mvn clean compile install -DskipTests -f=./k8s-camel/'
+                echo 'Build the proyect is ok'        
+            }
+        }
+
+        stage("Unit Test") {
+            steps {
+                echo "Init Unit Test"
+                sh "mvn test camel:route-coverage -f ./k8s-camel/"
+                echo "End Unit Test"
+            }
+        }
+
+        stage("Build Image/Docker") {
+            steps {
+                echo "Init build image with docker"
+                sh "docker build ./k8s-camel/ -t demoscotia"
+                echo "End Building the image"
+            }
+        }
+
+        stage("deploy and run Image to cluster") {
+            steps {
+                echo "Running image with docker"
+                sh "minikube image load demoscotia:latest"
+                sh "kubectl apply -f ./k8s-camel/configuration/openshift/template-ms-fuse-dev.yml"
+                echo "Running pod"
+            }
+        }
     }
 
       post {

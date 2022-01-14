@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: camel-k8s-scotia-container
-        image: demoscotia:1.0.0
+        image: demoscotia:latest
         imagePullPolicy: IfNotPresent
 ---
 apiVersion: v1
