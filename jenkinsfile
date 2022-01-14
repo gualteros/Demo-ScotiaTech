@@ -32,7 +32,7 @@ pipeline {
         stage('Running playbook') {
             steps {
                 sh 'cd ansible-ws'
-                ansiblePlaybook becomeUser: 'daniel', inventory: './ansible-ws', playbook: './ansible-ws/site.yml', sudo: true, sudoUser: 'daniel'
+                ansiblePlaybook becomeUser: 'daniel', inventory: './ansible-ws', playbook: './ansible-ws/site.yml'
                 echo 'The configuration of ubuntu is done'        
             }
         }
@@ -49,5 +49,6 @@ pipeline {
     failure {
         sh 'terraform -chdir=./Terraform/multicloudk8s destroy -auto-approve'
     }
+
   }
 }

@@ -1,6 +1,7 @@
 ---
 - name: Checking SSH connectivity to Kubernetes Master Instance
   hosts: localhost
+  become: yes
   tasks:
     - name: Wait for AWS Instance SSH to come up
       wait_for:
