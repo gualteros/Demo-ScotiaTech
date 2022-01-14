@@ -1,10 +1,14 @@
 pipeline {
-    agent any
+    agent {
+        label "daniel"
+    }
     
     stages {
         stage('Build') {
             steps {
-                sh 'echo "Hello World"'
+                sh 'll'
+                sh 'pwd'
+                
             }
         }
     }
