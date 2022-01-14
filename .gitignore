@@ -1,0 +1,3 @@
+k8s-camel/target/*
+.terraform
+.vscode

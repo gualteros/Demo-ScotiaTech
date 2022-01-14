@@ -1,0 +1,53 @@
+
+# Habilita/desabilita el log Tracking a nivel general
+track: false
+loggingName: ms-rest-scotiademo-OC
+logging.config: classpath:logback-spring.xml
+spring.jackson.serialization.write-dates-as-timestamps: false
+
+
+server:
+  address: 0.0.0.0
+  port: 8080
+
+
+camel:
+  component:
+    servlet:
+      mapping:
+        context-path: /*
+
+
+
+management:
+  server:
+    address: 0.0.0.0
+    port: 8081
+  endpoint:
+    health:
+      enabled: true
+  endpoints:
+    enabled-by-default: false
+
+logging:
+  file: logback-spring.xml
+  level:
+    ms-rest-scotiademo: INFO
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+ms:
+  configuration:
+    rest:
+      consumer:
+        apiPath: /api-doc
+        apiTitle: ms-rest-scotia
+        apiVersion: 1.0
+        apiBasePath: 
+        serviceName: /demo
+      producer:
+        pathDemo: ${PATH_DEMO}
+
+PATH_DEMO: https://www.boredapi.com/api/activity

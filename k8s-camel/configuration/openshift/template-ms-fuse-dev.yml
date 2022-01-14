@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-camel-k8s-scotia
+  annotations: 
+    kubernetes.io/change-cause: "mensaje del cambios"
+  labels:
+    app: camel-k8s-scotia
+spec:
+  revisionHistoryLimit: 5
+  replicas: 3
+  selector:
+    matchLabels:
+      app: camel-k8s-scotia
+  template:
+    metadata:
+      labels:
+        app: camel-k8s-scotia
+    spec:
+      containers:
+      - name: camel-k8s-scotia-container
+        image: demoscotia:1.0.0
+        imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-camel-k8s-scotia
+  labels:
+    app: camel-k8s-scotia
+spec: 
+  type: NodePort
+  selector:
+    app: camel-k8s-scotia
+  ports:
+    - protocol: TCP
+      port: 30000
+      targetPort: 8080        

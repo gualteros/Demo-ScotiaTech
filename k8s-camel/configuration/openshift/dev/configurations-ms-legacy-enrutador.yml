@@ -1,0 +1,11 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: configurations-ms-legacy-enrutador
+data:
+  ms.configuration.rest.producer.pathAcumulacion: http://ms-legacy-acumulacion.scotiademo-dcem-fidelizacion-dev.svc.cluster.local:8080/acumulacion
+  ms.configuration.rest.producer.pathReclamacion: http://ms-legacy-redencion-reclamacion.scotiademo-dcem-fidelizacion-dev.svc.cluster.local:8080/redencion
+  ms.configuration.rest.producer.pathValidacion: http://ms-legacy-validacion-cliente.scotiademo-dcem-fidelizacion-dev.svc.cluster.local:8080/validacioncliente
+
+
+

@@ -1,0 +1,57 @@
+
+# Habilita/desabilita el log Tracking a nivel general
+track: false
+loggingName: ms-rest-scotiademo-OC
+logging.config: classpath:logback-spring.xml
+spring.jackson.serialization.write-dates-as-timestamps: false
+
+
+server:
+  address: 0.0.0.0
+  port: 8080
+
+
+camel:
+  component:
+    servlet:
+      mapping:
+        context-path: /*
+
+
+
+management:
+  server:
+    address: 0.0.0.0
+    port: 8081
+  endpoint:
+    health:
+      enabled: true
+  endpoints:
+    enabled-by-default: false
+
+logging:
+  file: logback-spring.xml
+  level:
+    ms-rest-scotiademo: INFO
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+ms:
+  configuration:
+    rest:
+      consumer:
+        apiPath: /api-doc
+        apiTitle: ms-legacy-enrutador
+        apiVersion: 1.0
+        apiBasePath:
+        serviceName: /venta
+      producer:
+        pathAcumulacion: ${PATH_ACUMULACION}
+        pathReclamacion: ${PATH_RECLAMACION}
+        pathValidacion: ${PATH_VALIDACION}
+
+PATH_ACUMULACION: http://localhost
+PATH_RECLAMACION: http://localhost
+PATH_VALIDACION: http://localhost

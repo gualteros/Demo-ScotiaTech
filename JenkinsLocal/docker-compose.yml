@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  jenkins:
+    user: root
+    image: "myjenkins-blueocean:1.1"
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro  
+    networks:
+      - jenkins
+  sonarqube:
+    image: "sonarqube"
+    ports:
+      - "9000:9000"
+    networks:
+      - jenkins
+    env_file:
+    - tls.env
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:
+    
+networks:
+  jenkins:

@@ -1,0 +1,1 @@
+{"result":{"acumulaRedimeClienteRes":{"descResponse":"Transacci�n Exitosa","idResponse":1,"infoMillasAcumuladas":{"@nil":"true"},"nombreCliente":"bonus test "},"contextoRespuestaTipo":{"codEstadoTx":1,"fechaTx":"2021-05-20 04:36:35"},"falloTipo":{"@nil":"true"}}}

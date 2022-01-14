@@ -1,0 +1,457 @@
+pipeline {
+    agent {
+        label "maven"
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+     environment {
+        appName = 'nueva-fidelidad'
+        msName = 'ms-legacy-enrutador'
+        // Maven configuration.
+        mavenHome = tool 'maven 3.6.3'
+        mavenPath = '${mavenHome}/bin/'
+        // Artifact info.
+        portActuatorHealthCheck = '8081'
+        artifactVersion = readMavenPom().getVersion()
+        namespace_dev = 'scotiademo-dcem-fidelizacion-dev'
+        namespace_qa = 'scotiademo-dcem-fidelizacion-qa'
+        namespace_prod = 'scotiademo-dcem-fidelizacion-prd'
+
+        //Sonar Configuration
+        sonarExceptions= ' '
+        appDisplayName = 'Nueva Fidelidad - ms legacy enrutador'
+
+        dastUrl_dev='https://apis-legacy-fidelidad-scotiademo-dcem-fidelizacion-dev.cloudapps.scotiademo.com/venta/v1.0/venta'
+        dastUrl_qa='https://apis-legacy-fidelidad-scotiademo-dcem-fidelizacion-qa.cloudapps.scotiademo.com/venta/v1.0/venta'
+        archeryHost='10.26.8.18'
+
+        maxReplicasQA = 2
+        maxReplicasPrd = 2
+    }
+
+
+    stages {
+        stage("Ambiente DEV") {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'feature/*'
+                    branch 'bugfix/*'
+                }
+            }
+            steps {
+                script {
+                    namespace = namespace_dev
+                    maxReplicas = '1'
+                    limitCpu = '300m'
+                    limitMemory = '512Mi'
+                    requestCpu = '100m'
+                    requestMemory = '256Mi'
+                    dastUrl='https://apis-legacy-fidelidad-scotiademo-dcem-fidelizacion-dev.cloudapps.scotiademo.com/venta/v1.0/venta'
+                }
+            }
+        }
+        stage("Ambiente QA") {
+            when {
+                anyOf {
+                     branch 'release/*'
+                }
+            }
+            steps {
+                script {
+                    namespace = namespace_qa
+                    maxReplicas = maxReplicasQA
+                    limitCpu = '300m'
+                    limitMemory = '512Mi'
+                    requestCpu = '100m'
+                    requestMemory = '256Mi'
+                    dastUrl='https://apis-legacy-fidelidad-scotiademo-dcem-fidelizacion-qa.cloudapps.scotiademo.com/venta/v1.0/venta'
+                }
+            }
+        }
+        stage("Ambiente PRD") {
+            when {
+                anyOf {
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    namespace = namespace_prod
+                    maxReplicas = maxReplicasPrd
+                    limitCpu = '300m'
+                    limitMemory = '512Mi'
+                    requestCpu = '100m'
+                    requestMemory = '256Mi'
+                }
+            }
+        }
+        stage('Tag and ArtifactId') {
+            steps {
+                script {
+                    echo "Path: ${PATH}"
+                    sh 'java -version'
+                    pom = readMavenPom file: ''
+                    tagImage = pom.version + "-" + currentBuild.number
+                    artifactName = pom.artifactId
+                    artifactVersion = pom.version
+                    nameJar = artifactName + "-" + artifactVersion + ".jar"
+                    isRelease = !artifactVersion.contains ('SNAPSHOT')
+                    if (isRelease){
+                        echo "Es version release: "+ artifactVersion
+                    }else{
+                        echo "Es version Snapshot: "+ artifactVersion
+                    }
+                }
+            }
+        }
+        stage("Build") {
+            steps {
+                echo "Init Build"
+                configFileProvider([configFile(fileId: 'a3689d12-6b9f-47d9-8bb2-bf81ed9d9389', variable: 'MavenSettings')]) {
+                    sh "${mavenPath}mvn clean compile -DskipTests -s $MavenSettings -U"
+                }
+                echo "End Build"
+            }
+        }
+        stage("Unit Test") {
+            steps {
+                echo "Init Unit Test"
+                configFileProvider([configFile(fileId: 'a3689d12-6b9f-47d9-8bb2-bf81ed9d9389', variable: 'MavenSettings')]) {
+                    sh "${mavenPath}mvn test camel:route-coverage -s $MavenSettings -U "
+                }
+                echo "End Unit Test"
+            }
+        }
+        stage('SonarQube Scan') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'feature/*'
+                    branch 'bugfix/*'
+                    branch 'release/*'
+                }
+            }
+            steps {
+                withSonarQubeEnv('sonar') {
+                    configFileProvider([configFile(fileId: 'a3689d12-6b9f-47d9-8bb2-bf81ed9d9389', variable: 'MavenSettings')]) {
+                        sh "${mavenPath}mvn sonar:sonar " +
+                        "-Dsonar.java.coveragePlugin=jacoco -Dsonar.junit.reportsPath=target/surefire-reports " +
+                        "-Dsonar.exclusions='${sonarExceptions}' " +
+                        "-Dsonar.projectKey=${appName}-${msName} -Dsonar.projectName='${appDisplayName}' " +
+                        "-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -s $MavenSettings -U "
+                    }
+                }
+            }
+        }
+        stage("Publish to Nexus") {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'release/*'
+                    branch 'master'
+                }
+            }
+            steps {
+                echo "Init Publish to Nexus"
+                configFileProvider([configFile(fileId: 'a3689d12-6b9f-47d9-8bb2-bf81ed9d9389', variable: 'MavenSettings')]) {
+                    script {
+                        if (isRelease){
+                            sh "${mavenPath}mvn -s $MavenSettings deploy -DskipTests=true  -DaltDeploymentRepository=maven-releases::default::https://nexus3-devops-nexus.cloudapps.scotiademo.com/repository/maven-releases/"
+                        }else{
+                            sh "${mavenPath}mvn -s $MavenSettings deploy -DskipTests=true  -DaltDeploymentRepository=maven-snapshots::default::https://nexus3-devops-nexus.cloudapps.scotiademo.com/repository/maven-snapshots/"
+                        }
+                    }
+                }
+                echo "End Publish to Nexus"
+            }
+        }
+        stage("Config Dev Environment") {
+            when {
+                anyOf {
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject("${namespace}") {
+
+                            def configmap_app = openshift.selector("configmap","configurations-${msName}")
+                            if(!configmap_app.exists()){
+                                openshift.create(readFile("configuration/openshift/dev/configurations-${msName}.yml"))
+                                echo "Configmap creado a partir de configuration/openshift/dev/configurations-${msName}.yml"
+                            }else{
+                                configmap_app.delete()
+                                openshift.create(readFile("configuration/openshift/dev/configurations-${msName}.yml"))
+                                echo "Configmap recreado a partir de configuration/openshift/dev/configurations-${msName}.yml"
+                            }
+
+                            def secret_sa_gcp = openshift.selector("secret","secret-gcp")
+                            if(!secret_sa_gcp.exists()){
+                                openshift.create(readFile( "configuration/openshift/dev/secret-gcp.yml"))
+                                echo "Se ha creado secret con nombre secret-gcp "
+                            }else{
+                                echo "El secret secret-gcp ya existe, se omite la creación de este recurso"
+                            }
+
+                            apply = openshift.apply(openshift.raw("process -f configuration/openshift/template-ms-fuse-dev.yml -p APPLICATION_NAME=${msName} -p ACTUATOR_PORT=${portActuatorHealthCheck} -p ENVIRONMENT=dev -p LIMIT_CPU=${limitCpu} -p LIMIT_MEMORY=${limitMemory} -p REQUEST_CPU=${requestCpu} -p REQUEST_MEMORY=${requestMemory} ").actions[0].out)
+                        }
+                }
+                }
+            }
+        }
+        stage("Config QA Environment") {
+            when {
+                anyOf {
+                    branch 'release/*'
+                }
+            }
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject("${namespace}") {
+
+                            def configmap_app = openshift.selector("configmap","configurations-${msName}")
+                            if(!configmap_app.exists()){
+                                openshift.create(readFile("configuration/openshift/qa/configurations-${msName}.yml"))
+                                echo "Configmap creado a partir de configuration/openshift/qa/configurations-${msName}.yml"
+                            }else{
+                                configmap_app.delete()
+                                openshift.create(readFile("configuration/openshift/qa/configurations-${msName}.yml"))
+                                echo "Configmap recreado a partir de configuration/openshift/qa/configurations-${msName}.yml"
+                            }
+
+                            def secret_sa_gcp = openshift.selector("secret","secret-gcp")
+                            if(!secret_sa_gcp.exists()){
+                                openshift.create(readFile( "configuration/openshift/qa/secret-gcp.yml"))
+                                echo "Se ha creado secret con nombre secret-gcp "
+                            }else{
+                                echo "El secret secret-gcp ya existe, se omite la creación de este recurso"
+                            }
+
+                            apply = openshift.apply(openshift.raw("process -f configuration/openshift/template-ms-fuse.yml -p APPLICATION_NAME=${msName} -p MAX_REPLICAS=${maxReplicas} -p ACTUATOR_PORT=${portActuatorHealthCheck} -p ENVIRONMENT=qa -p LIMIT_CPU=${limitCpu} -p LIMIT_MEMORY=${limitMemory} -p REQUEST_CPU=${requestCpu} -p REQUEST_MEMORY=${requestMemory} ").actions[0].out)
+                        }
+                    }
+                }
+            }
+        }
+        stage("Config PROD Environment") {
+            when {
+                anyOf {
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject("${namespace}") {
+
+                            def configmap_app = openshift.selector("configmap","configurations-${msName}")
+                            if(!configmap_app.exists()){
+                                openshift.create(readFile("configuration/openshift/prd/configurations-${msName}.yml"))
+                                echo "Configmap creado a partir de configuration/openshift/prd/configurations-${msName}.yml"
+                            }else{
+                               echo "Configmap configurations-${msName}.yml ya existe, se omite la creación de este recurso"
+                            }
+
+                            def secret_sa_gcp = openshift.selector("secret","secret-gcp")
+                            if(!secret_sa_gcp.exists()){
+                                openshift.create(readFile( "configuration/openshift/prd/secret-gcp.yml"))
+                                echo "Se ha creado secret con nombre secret-gcp "
+                            }else{
+                                echo "El secret secret-gcp ya existe, se omite la creación de este recurso"
+                            }
+
+                            apply = openshift.apply(openshift.raw("process -f configuration/openshift/template-ms-fuse.yml -p APPLICATION_NAME=${msName} -p MAX_REPLICAS=${maxReplicasPrd} -p ACTUATOR_PORT=${portActuatorHealthCheck} -p ENVIRONMENT=prd -p LIMIT_CPU=${limitCpu} -p LIMIT_MEMORY=${limitMemory} -p REQUEST_CPU=${requestCpu} -p REQUEST_MEMORY=${requestMemory} ").actions[0].out)
+                         }
+                    }
+                }
+            }
+        }
+        stage("Build Image") {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'release/*'
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    echo "Init Build Image"
+                    openshift.withCluster() {
+                        openshift.verbose()
+                        openshift.withProject("${namespace}") {
+                            openshift.selector("bc", "${msName}").startBuild("--from-file=./target/${nameJar}", "--wait=true")
+                            openshift.tag("${msName}:latest", "${msName}:${tagImage}")
+                        }
+                    }
+                    echo "End Build Image"
+                }
+            }
+        }
+        stage("Deploy DEV") {
+            when {
+                anyOf {
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    echo "Init Deploy Image to DEV Environment"
+                    openshift.withCluster() {
+                        openshift.verbose()
+                        openshift.withProject("${namespace}") {
+
+                            openshift.set("image", "dc/${msName}", "${msName}=${namespace}/${msName}:${tagImage}", " --source=imagestreamtag")
+                            openshift.selector("dc", "${msName}").rollout().latest();
+                            sleep 2
+
+                            // Wait for application to be deployed
+                            def dc = openshift.selector("dc", "${msName}").object()
+                            def dc_version = dc.status.latestVersion
+                            def rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+                            echo "Waiting for ReplicationController ${msName}-${dc_version} to be ready"
+
+                            def countIterMax = 20
+                            def countInterActual = 0
+                            while (rc.spec.replicas != rc.status.readyReplicas) {
+                                sleep 10
+                                rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+                                countInterActual = countInterActual + 1
+                                if (countInterActual > countIterMax) {
+                                    echo "Se ha superado el tiempo de espera para el despliegue"
+                                    echo "Se procede a cancelar el despliegue y a mantener la última versión estable"
+                                    openshift.selector("dc", "${msName}").rollout().cancel();
+                                    throw new Exception("Se ha superado el tiempo de espera para el despliegue")
+                                }
+                            }
+                        }
+                    }
+                    echo "End Deploy Image to DEV Environment"
+                }
+            }
+        }
+
+        stage("Deploy QA") {
+            when {
+                anyOf {
+                    branch 'release/*'
+                }
+            }
+            steps {
+                script {
+                    echo "Init Deploy Image to QA Environment"
+                    openshift.withCluster() {
+                        openshift.withProject("${namespace}") {
+                            openshift.set("image", "dc/${msName}", "${msName}=${namespace}/${msName}:${tagImage}", " --source=imagestreamtag")
+
+                            // Deploy the QA application.
+                            openshift.selector("dc", "${msName}").rollout().latest();
+                            sleep 2
+
+                            // Wait for application to be deployed
+                            def dc = openshift.selector("dc", "${msName}").object()
+                            def dc_version = dc.status.latestVersion
+                            def rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+
+                            echo "Waiting for ReplicationController ${msName}-${dc_version} to be ready"
+
+                            def countIterMax = 20
+                            def countInterActual = 0
+                            while (rc.spec.replicas != rc.status.readyReplicas) {
+                                sleep 10
+                                rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+                                countInterActual = countInterActual + 1
+                                if (countInterActual > countIterMax) {
+                                    echo "Se ha superado el tiempo de espera para el despliegue"
+                                    echo "Se procede a cancelar el despliegue y a mantener la última versión estable"
+                                    openshift.selector("dc", "${msName}").rollout().cancel();
+                                    throw new Exception("Se ha superado el tiempo de espera para el despliegue")
+                                }
+                            }
+                        }
+                    }
+                    echo "End Deploy Image to QA Environment"
+                }
+            }
+        }
+
+       /* stage('DAST') {
+        	when {
+            	anyOf {
+                	branch 'develop'
+                	branch 'release *//*'
+            	}
+        	}
+        	steps {
+        		script {
+        			echo ' branch: ' + env.BRANCH_NAME
+        			def branch_name = env.BRANCH_NAME
+        			echo ' branch var: ' + branch_name
+        			if (branch_name.contains("develop")) {
+	        			withCredentials([usernamePassword(credentialsId: 'archerycreds', usernameVariable: 'ARCHERY_USERNAME', passwordVariable: 'ARCHERY_PASSWORD')]) {
+                			sh '''
+	                    		bash ./rest-scan.sh -h ${archeryHost} -u ${ARCHERY_USERNAME} -p ${ARCHERY_PASSWORD} -s ${dastUrl_dev}
+                			'''
+            			}
+            		} else {
+	            		withCredentials([usernamePassword(credentialsId: 'archerycreds', usernameVariable: 'ARCHERY_USERNAME', passwordVariable: 'ARCHERY_PASSWORD')]) {
+                			sh '''
+	                    		bash ./rest-scan.sh -h ${archeryHost} -u ${ARCHERY_USERNAME} -p ${ARCHERY_PASSWORD} -s ${dastUrl_qa}
+                			'''
+            			}
+            		}
+            	}
+        	}
+    	 } */
+
+        stage("Deploy Prod") {
+            when {
+                anyOf {
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    echo "Init Deploy Image to Prod Environment"
+                    openshift.withCluster() {
+                        openshift.withProject("${namespace}") {
+                            openshift.set("image", "dc/${msName}", "${msName}=${namespace}/${msName}:${tagImage}", " --source=imagestreamtag")
+
+                            // Deploy the PROD application.
+                            openshift.selector("dc", "${msName}").rollout().latest();
+                            sleep 2
+
+                            // Wait for application to be deployed
+                            def dc = openshift.selector("dc", "${msName}").object()
+                            def dc_version = dc.status.latestVersion
+                            def rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+
+                            echo "Waiting for ReplicationController ${msName}-${dc_version} to be ready"
+
+                            def countIterMax = 20
+                            def countInterActual = 0
+                            while (rc.spec.replicas != rc.status.readyReplicas) {
+                                sleep 10
+                                rc = openshift.selector("rc", "${msName}-${dc_version}").object()
+                                countInterActual = countInterActual + 1
+                                if (countInterActual > countIterMax) {
+                                    echo "Se ha superado el tiempo de espera para el despliegue"
+                                    echo "Se procede a cancelar el despliegue y a mantener la última versión estable"
+                                    openshift.selector("dc", "${msName}").rollout().cancel();
+                                    throw new Exception("Se ha superado el tiempo de espera para el despliegue")
+                                }
+                            }
+                        }
+                    }
+                    echo "End Deploy Image to PROD Environment"
+                }
+            }
+        }
+    }
+}

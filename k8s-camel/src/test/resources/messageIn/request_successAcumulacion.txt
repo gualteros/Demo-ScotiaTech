@@ -1,0 +1,26 @@
+{"acumulaRedimeCliente": {
+   "idVenta": "0550100001103",
+   "fechaTransaccion": "2021-07-15 14:09:52",
+   "tipoTransaccion": "Acumulacion",
+   "montoTotal": 24800,
+   "descuento": 0,
+   "valorPagar": 24800,
+   "impuesto": 907,
+   "idPromotor": "199",
+   "idPuntoVenta": 55,
+   "origenVenta": "TDC",
+   "tipoDocumento": {
+   "codTipoidentificacion": "CC",
+   "valNumeroIdentificacion": "HjFz45lPuxeh0NnIUF3g4A==",
+   "pin":"JcgnciZhcaMtf6o6ZliAWg=="
+   },
+   "tipoVenta": "T",
+   "productos": 	{"idProducto": "43","cantidad": 1.00,"valorUnitario": 24800},
+   "mediosPago": [	{"codigoMedioPago": 1,"monto": 24800,"millasRedimidas":0}]
+   },
+   "contextoTransaccionalTipo": {
+   "codTipoEvento": "002",
+   "fecEvento": "2021-07-15 14:09:52",
+   "valUsuario": "PIAPPLSATFUL"
+   }
+}
