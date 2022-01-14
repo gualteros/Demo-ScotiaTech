@@ -39,9 +39,7 @@ pipeline {
 
         stage('destroying Terraform') {
             steps {
-                sh 'pwd'
-                sh 'cd Terraform/multicloudk8s/'
-                sh 'ansible-playbook site.yml'
+                sh 'terraform -chdir=./Terraform/multicloudk8s apply -auto-approve'
                 echo 'The configuration of ubuntu has gone'        
             }
         }
