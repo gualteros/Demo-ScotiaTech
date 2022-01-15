@@ -1,1 +1,0 @@
-{"result":{"acumulaRedimeClienteRes":{"descResponse":"Transacci�n Exitosa","idResponse":1,"infoMillasAcumuladas":14,"nombreCliente":"IvanQ Mauricio Rodriguez Merchan"},"contextoRespuestaTipo":{"codEstadoTx":1,"fechaTx":"2021-07-28 09:51:25"},"falloTipo":{"@nil":"true"}}}

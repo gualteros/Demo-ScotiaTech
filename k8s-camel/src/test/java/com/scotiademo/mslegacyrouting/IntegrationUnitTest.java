@@ -53,21 +53,11 @@ public class IntegrationUnitTest {
 	private final static String RESPONSE_SUCCESS_MESSAGE = "src/test/resources/responseMessages/responseSuccessWS.txt";
 	private final static String REQUEST_SUCCESS_MESSAGE = "src/test/resources/messageIn/request_success.txt";
 
-	private final static String RESPONSE_SUCCESS_MESSAGE_REDENCION = "src/test/resources/responseMessages/responseSuccessRedencion.txt";
-	private final static String REQUEST_SUCCESS_MESSAGE_REDENCION = "src/test/resources/messageIn/request_successRedencion.txt";
-
-	private final static String RESPONSE_SUCCESS_MESSAGE_RECLAMACION = "src/test/resources/responseMessages/responseSuccessReclamacion.txt";
-	private final static String REQUEST_SUCCESS_MESSAGE_RECLAMACION = "src/test/resources/messageIn/request_successReclamacion.txt";
-
-	private final static String RESPONSE_SUCCESS_MESSAGE_ACUMULACION = "src/test/resources/responseMessages/responseSuccessAcumulacion.txt";
-	private final static String REQUEST_SUCCESS_MESSAGE_ACUMULACION = "src/test/resources/messageIn/request_successAcumulacion.txt";
-
 	@Before
 	public void routeConfiguration() throws Exception {
 
 	}
 
-	// @Ignore
 	@Test
 	public void successRequestTransformationTest() throws Exception {
 
