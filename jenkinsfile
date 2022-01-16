@@ -39,19 +39,20 @@ pipeline {
 
         stage('destroying Terraform') {
             steps {
-                def userInput = false
+                echo 'if you want to connect by ssh run cat /home/daniel/Documents/PersonalRepository/Demo-ScotiaTech/ansible-ws/inventory'
+                echo 'and run ssh -i k8s-multi-cloud-key-public ubuntu@3.138.181.196'
+                def userInput = false 
                 script {
-            def userInput = input(id: 'Proceed1', message: 'Promote build?', parameters: [[$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'Please confirm you agree with this']])
-            echo 'userInput: ' + userInput
+                    def userInput = input(id: 'Proceed1', message: 'Promote build?', parameters: [[$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'Please confirm you agree with this']])
+                    echo 'userInput: ' + userInput
 
-            if(userInput == true) {
-                sh 'terraform -chdir=./Terraform/multicloudk8s destroy -auto-approve'
-                echo 'The configuration of AWS has gone' 
-            } else {
-                echo "AWS keep running"
-            }
-
-        }    
+                    if(userInput == true) {
+                        sh 'terraform -chdir=./Terraform/multicloudk8s destroy -auto-approve'
+                        echo 'The configuration of AWS has gone' 
+                    } else {
+                        echo "AWS keep running"
+                    }
+                }    
        
             }
         }
@@ -90,9 +91,12 @@ pipeline {
     }
 
       post {
-    failure {
-        sh 'terraform -chdir=./Terraform/multicloudk8s destroy -auto-approve'
-    }
+        failure {
+            sh 'terraform -chdir=./Terraform/multicloudk8s destroy -auto-approve'
+        }
+        success {
+            sh 'minikube service --url service-camel-k8s-scotia'
+        }
 
   }
 }
