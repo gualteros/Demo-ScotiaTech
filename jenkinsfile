@@ -23,7 +23,6 @@ pipeline {
 
         stage('Preparing CM') {
             steps {
-                sh 'cd ansible-ws'
                 sh 'ansible-inventory -i ./ansible-ws --graph'
                 echo 'run the follow command to connect server by terraform "ssh -i k8s-multi-cloud-key-public ubuntu@<ip-address>"'           
             }
@@ -31,7 +30,6 @@ pipeline {
 
         stage('Running playbook') {
             steps {
-                sh 'cd ansible-ws'
                 sh 'sudo ansible-playbook ./ansible-ws/site.yml'
                 echo 'The configuration of ubuntu is done'        
             }

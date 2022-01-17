@@ -6,7 +6,7 @@
     <artifactId>ms-rest-scotiademo</artifactId>
     <version>1.0.0</version>
 
-    <name>scotiademo :: Integrations :: Spring-Boot :: Camel REST / REST :: SophosSolutions</name>
+    <name>scotiademo :: Integrations :: Spring-Boot :: Camel REST / REST :: </name>
     <description>Spring Boot example running a Camel REST route connecting to a REST Service</description>
 
     <properties>
